@@ -1,6 +1,11 @@
 mod input_utils;
 
-use std::{error::Error, fmt::Display};
+use std::{
+    error::Error,
+    fmt::Display,
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub struct Command {
@@ -41,13 +46,48 @@ impl Command {
         })
     }
 
-    pub fn execute(&self) -> Result<(), Box<dyn Error>> {
+    pub fn execute(self) -> Result<(), Box<dyn Error>> {
         match &self.command_type {
             CommandType::Echo => {
                 println!("{}", self.arguments.join("\n"));
             }
             CommandType::Exit => {
                 std::process::exit(0);
+            }
+            CommandType::Help => {
+                println!("Help is not implemented yet");
+            }
+            CommandType::Ls => {
+                let mut dirs = self.arguments.clone();
+                if dirs.is_empty() {
+                    dirs.push(".".to_string());
+                }
+
+                for dir in &dirs[..] {
+                    let dir = Path::new(&dir);
+                    if !dir.exists() {
+                        println!("Directory {} does not exist", dir.display());
+                        continue;
+                    }
+                    if !dir.is_dir() {
+                        println!("{} is not a directory", dir.display());
+                        continue;
+                    }
+                    let mut entries = fs::read_dir(dir)?
+                        .map(|entry| entry.unwrap().path())
+                        .collect::<Vec<PathBuf>>();
+                    entries.sort();
+
+                    if dirs.len() > 1 {
+                        println!("{}:", dir.display());
+                    }
+                    for entry in entries {
+                        println!("{}", entry.display());
+                    }
+                    if dirs.len() > 1 {
+                        println!();
+                    }
+                }
             }
         }
 
@@ -82,13 +122,17 @@ impl TryFrom<String> for Command {
 pub enum CommandType {
     Echo,
     Exit,
+    Help,
+    Ls,
 }
 
 impl CommandType {
     fn get_supported_flags(&self) -> Vec<&str> {
         match self {
-            CommandType::Echo => vec!["-u"],
+            CommandType::Echo => vec![],
             CommandType::Exit => vec![],
+            CommandType::Help => vec![],
+            CommandType::Ls => vec![],
         }
     }
 
@@ -100,6 +144,8 @@ impl CommandType {
         match self {
             CommandType::Echo => Some(ArgumentCount::AtLeast(1)),
             CommandType::Exit => Some(ArgumentCount::Exact(0)),
+            CommandType::Help => Some(ArgumentCount::Exact(0)),
+            CommandType::Ls => None,
         }
     }
 }
@@ -111,6 +157,8 @@ impl TryFrom<String> for CommandType {
         match input.as_str() {
             "echo" => Ok(CommandType::Echo),
             "exit" => Ok(CommandType::Exit),
+            "help" => Ok(CommandType::Help),
+            "ls" => Ok(CommandType::Ls),
             _ => Err(CommandError::UnknownCommand(input)),
         }
     }
