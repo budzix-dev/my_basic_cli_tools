@@ -128,8 +128,8 @@ impl ArgumentCount {
     pub fn is_valid(&self, count: usize) -> bool {
         match self {
             ArgumentCount::Exact(expected) => count == *expected,
-            ArgumentCount::AtLeast(expected) => count >= *expected,
-            ArgumentCount::AtMost(expected) => count <= *expected,
+            ArgumentCount::AtLeast(min) => count >= *min,
+            ArgumentCount::AtMost(max) => count <= *max,
             ArgumentCount::Range(min, max) => count >= *min && count <= *max,
         }
     }
@@ -139,8 +139,8 @@ impl Display for ArgumentCount {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             ArgumentCount::Exact(count) => write!(f, "exactly {}", count),
-            ArgumentCount::AtLeast(count) => write!(f, "at least {}", count),
-            ArgumentCount::AtMost(count) => write!(f, "up to {}", count),
+            ArgumentCount::AtLeast(min) => write!(f, "at least {}", min),
+            ArgumentCount::AtMost(max) => write!(f, "up to {}", max),
             ArgumentCount::Range(min, max) => write!(f, "{}-{}", min, max),
         }
     }
